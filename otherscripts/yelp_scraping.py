@@ -11,8 +11,21 @@ BASE_URL = "https://api.yelp.com/v3/businesses/search"
 dynamodb = boto3.resource('dynamodb', 
     region_name='us-east-1')
 
- # Change to your AWS region
 table = dynamodb.Table('yelp-restaurants')
+
+
+
+# Scan the table to get all items
+response = table.scan()
+items = response.get('Items', [])
+
+# Delete each item in batch mode
+with table.batch_writer() as batch:
+    for item in items:
+        batch.delete_item(Key={'business_id': item['business_id']})  # Change 'business_id' to your primary key
+
+print(f"Deleted {len(items)} items from {'yelp-restaurants'}")
+
 
 def fetch_yelp_data(cuisine, location, limit=50, offset=0, sort_by='rating', price=None):
     headers = {
@@ -31,12 +44,11 @@ def fetch_yelp_data(cuisine, location, limit=50, offset=0, sort_by='rating', pri
     response = requests.get(BASE_URL, headers=headers, params=params)
     return response.json()
 
-# Initialize count as a global variable properly
 count = 0
 
 def save_to_dynamodb(restaurants, cuisine=None):
     """Save restaurant data to DynamoDB"""
-    global count  # Declare we're using the global count variable
+    global count  
     
     for restaurant in restaurants:
         try:
@@ -58,9 +70,9 @@ def save_to_dynamodb(restaurants, cuisine=None):
                 item['cuisine'] = cuisine
                 
             table.put_item(Item=item)
-            count += 1  # Increment count after successful insertion
+            count += 1  
             
-            if count >= 1000:  # Changed to >= to make sure we don't miss the milestone
+            if count >= 1200:  
                 print(f"Milestone reached: {count} restaurants inserted!")
             
         except Exception as e:
@@ -70,37 +82,33 @@ def collect_restaurants():
     cuisines = ["Chinese", "Italian", "Japanese", "Mexican", "Indian"]
     all_restaurants = []
     
-    # More comprehensive search parameters
     search_params = [
-        # East Coast
+        
         {"location": "New York, NY", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Boston, MA", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Miami, FL", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Washington, DC", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Atlanta, GA", "sort_by": "rating", "price": "1,2,3"},
         
-        # West Coast
+        
         {"location": "Los Angeles, CA", "sort_by": "rating", "price": "1,2,3"},
         {"location": "San Francisco, CA", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Seattle, WA", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Portland, OR", "sort_by": "rating", "price": "1,2,3"},
         {"location": "San Diego, CA", "sort_by": "rating", "price": "1,2,3"},
         
-        # Central
         {"location": "Chicago, IL", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Houston, TX", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Dallas, TX", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Denver, CO", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Minneapolis, MN", "sort_by": "rating", "price": "1,2,3"},
         
-        # Additional Major Cities
         {"location": "Las Vegas, NV", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Phoenix, AZ", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Philadelphia, PA", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Austin, TX", "sort_by": "rating", "price": "1,2,3"},
         {"location": "Nashville, TN", "sort_by": "rating", "price": "1,2,3"},
         
-        # Additional searches by review count for variety
         {"location": "New York, NY", "sort_by": "review_count", "price": "1,2,3"},
         {"location": "Los Angeles, CA", "sort_by": "review_count", "price": "1,2,3"},
         {"location": "Chicago, IL", "sort_by": "review_count", "price": "1,2,3"},
@@ -113,13 +121,13 @@ def collect_restaurants():
         print(f"\nCollecting {cuisine} restaurants...")
         
         for params in search_params:
-            if len(cuisine_restaurants) >= 1000:
+            if len(cuisine_restaurants) >= 1200:
                 break
                 
             offset = 0
-            max_offset = 150  # Stay well within the 240 limit
+            max_offset = 200
             
-            while offset < max_offset and len(cuisine_restaurants) < 1000:
+            while offset < max_offset and len(cuisine_restaurants) < 1200:
                 try:
                     data = fetch_yelp_data(
                         cuisine=cuisine,
@@ -138,7 +146,6 @@ def collect_restaurants():
                     if not businesses:
                         break
                     
-                    # Filter out duplicates based on business_id
                     existing_ids = {r['id'] for r in cuisine_restaurants}
                     new_businesses = [b for b in businesses if b['id'] not in existing_ids]
                     
@@ -147,25 +154,22 @@ def collect_restaurants():
                         print(f"Found {len(cuisine_restaurants)} unique {cuisine} restaurants so far...")
                     else:
                         print("No new unique restaurants found in this batch")
-                        break  # Skip to next search params if no new restaurants found
+                        break  
                     
                     offset += 50
-                    time.sleep(1.5)  # Slightly longer delay to be extra safe
+                    time.sleep(1.5)  
                     
                 except Exception as e:
                     print(f"Error fetching data: {str(e)}")
                     time.sleep(2)
                     break
             
-            # Add a small delay between different search parameters
             time.sleep(2)
         
-        # Trim to exactly 1000 if we got more
-        cuisine_restaurants = cuisine_restaurants[:1000]
+        cuisine_restaurants = cuisine_restaurants[:1200]
         all_restaurants.extend(cuisine_restaurants)
         print(f"Finished collecting {len(cuisine_restaurants)} {cuisine} restaurants")
         
-        # Save this cuisine's restaurants to DynamoDB
         print(f"Saving {cuisine} restaurants to DynamoDB...")
         save_to_dynamodb(cuisine_restaurants, cuisine)
         
