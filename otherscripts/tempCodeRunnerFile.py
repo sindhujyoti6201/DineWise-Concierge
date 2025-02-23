@@ -1,12 +1,8 @@
-# Scrape Yelp API and store data in DynamoDB
-# for cuisine in CUISINES:
-#     print(f"Fetching data for {cuisine} cuisine...")
-#     for offset in range(0, TOTAL_RESTAURANTS_PER_CUISINE, BATCH_SIZE):
-#         restaurants = get_restaurants(cuisine, offset)
-#         if not restaurants:
-#             break  # Stop if no more results
-#         for restaurant in restaurants:
-#             insert_restaurant(restaurant)
-#         time.sleep(1)  # Prevent hitting API rate limits
+    #     if restaurant_data:
+    #         insert_to_elasticsearch(restaurant_data)
+    #         total_inserted += len(restaurant_data)
+    #         print(f"Inserted {len(restaurant_data)} restaurants for {cuisine}.")
+    #     else:
+    #         print(f"No data found for cuisine: {cuisine}")
 
-# print("✅ Data scraping and storage complete!")
+    # print(f"Total of {total_inserted} restaurants inserted into Elasticsearch.")

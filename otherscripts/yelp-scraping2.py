@@ -54,7 +54,7 @@ def delete_all_items():
         print(f"Error deleting items: {str(e)}")
 
 
-def insert_restaurant(restaurant):
+def insert_restaurant(restaurant, cuisine):
     try:
         item = {
             "business_id": restaurant["id"],
@@ -67,7 +67,8 @@ def insert_restaurant(restaurant):
             "num_reviews": Decimal(restaurant.get("review_count", 0)),
             "rating": Decimal(str(restaurant.get("rating", 0.0))),
             "zip_code": restaurant["location"].get("zip_code", "N/A"),
-            "insertedAtTimestamp": datetime.utcnow().isoformat()
+            "insertedAtTimestamp": datetime.utcnow().isoformat(),
+            "cuisine": cuisine
         }
         table.put_item(Item=item)
         # print(f"Inserted: {item['name']} ({item['business_id']})")
@@ -125,7 +126,7 @@ def fetch_all_restaurants(cuisine):
                 break  # Stop if no more results
             
             for restaurant in restaurants:
-                insert_restaurant(restaurant)
+                insert_restaurant(restaurant, cuisine)
                 total_inserted += 1
                 if total_inserted >= max_restaurants_per_cuisine:
                     break  # Stop once we reach the desired limit
