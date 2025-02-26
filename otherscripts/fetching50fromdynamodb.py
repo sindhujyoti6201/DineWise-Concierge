@@ -61,25 +61,6 @@ def fetch_dynamodb_data(cuisine, limit=50):
 # Elasticsearch: Insert data into existing index
 index_name = "restaurants"
 
-def insert_to_elasticsearch(restaurant_data):
-    actions = [
-        {
-            "_index": index_name,
-            "_id": restaurant["RestaurantID"],
-            "_source": {
-                "RestaurantID": restaurant["RestaurantID"],
-                "Cuisine": restaurant["Cuisine"]
-            }
-        }
-        for restaurant in restaurant_data
-    ]
-
-    success, failed = helpers.bulk(es, actions, index=index_name)
-
-    print(f"Inserted {success} documents into Elasticsearch.")
-    if failed:
-        print(f"Failed to insert {len(failed)} documents.")
-
 
 # Fetch and insert data for three cuisines: Chinese, Indian, and Italian
 def fetch_and_insert():
